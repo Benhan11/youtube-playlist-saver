@@ -1,7 +1,11 @@
 RUN:
 node script.js <listID> <listID> ...
+./backup-playlists.bat
 
-(If invalid token grant simply delete project_token.json)
+If invalid token grant:
+1. Delete credentials/project_token.json)
+2. Run script and follow token instructions
+3. Rerun script as it won't have worked the first time
 
 EXAMPLE:
 https://www.youtube.com/playlist?list=THISPARTISTHELISTID
