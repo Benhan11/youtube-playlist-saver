@@ -1,3 +1,5 @@
+### Do not make public! (Google Developer terms)
+
 # Youtube Playlist Saver
 
 ### Run
