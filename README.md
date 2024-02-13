@@ -11,7 +11,7 @@ EXAMPLE:
 https://www.youtube.com/playlist?list=THISPARTISTHELISTID
 
 Output: 
-/generated/<listID>.json
+/generated/playlists/YYYY-mm-dd/<listID>.json
 
 Format generated JSON: 
 SHIFT + ALT + F
