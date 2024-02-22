@@ -11,24 +11,32 @@ var TOKEN_PATH = TOKEN_DIR + 'project_token.json';
 var save_path = './generated/playlists/'
 
 
-// Main
-// Load client secrets from local file and run the script.
-fs.readFile('client_secret.json', function processClientSecrets(err, content) {
-    if (err) {
-        console.log('Error loading client secret file: ' + err);
-        return;
-    }
 
-    if (make_save_directory() == false) return;
+// Run the script
+main()
 
-    let playlistIds = process.argv.slice(2);
+/**
+ * Run the script
+ */
+function main() {
+    // Load client secrets from local file
+    fs.readFile('client_secret.json', function processClientSecrets(err, content) {
+        if (err) {
+            console.log('Error loading client secret file: ' + err);
+            return;
+        }
 
-    // Get all playlist items from input playlistId's
-    playlistIds.forEach(pl => {
-        authorize(JSON.parse(content), getPlaylist, pl);
+        if (make_save_directory() == false) return;
+
+        let playlistIds = process.argv.slice(2);
+
+        // Get all playlist items from input playlistId's
+        playlistIds.forEach(pl => {
+            authorize(JSON.parse(content), getPlaylist, pl);
+        });
     });
-});
-
+}
+        
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -97,7 +105,8 @@ function getNewToken(oauth2Client, callback) {
 function storeToken(token) {
     try {
         fs.mkdirSync(TOKEN_DIR);
-    } catch (err) {
+    } 
+    catch (err) {
         if (err.code != 'EEXIST') {
             throw err;
         }
@@ -110,9 +119,9 @@ function storeToken(token) {
 
 
 /**
- * Check if save directory exists and creates it if it does not.
+ * Check if save directory exists and creates it if it does not, otherwise overwrites it.
  * 
- * @returns {boolean} false if an error occurred or the save folder for this date already exists.
+ * @returns {boolean} false if a directory manipulation error occurred.
  */
 function make_save_directory() {
     // Make the save directory if it does not already exist
@@ -126,13 +135,14 @@ function make_save_directory() {
         const date = new Date();
         save_path += date.toISOString().split('T')[0] + '/';
 
-        if (!fs.existsSync(save_path)) {
-            fs.mkdirSync(save_path);
+        // Overwrite todays backup if there was one
+        if (fs.existsSync(save_path)) {
+            fs.rmdir(save_path, err => {
+                if (err) throw err;
+            });
         }
-        else {
-            console.log("A backup folder already exists for today. Delete it if you want to rerun the backup.\nFolder: " + save_path)
-            return false;
-        }
+        fs.mkdirSync(save_path);
+
     }
     catch (err) {
         console.log(err);
@@ -145,7 +155,7 @@ function make_save_directory() {
  * Lists names of items in specified user playlist.
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
- */
+  */
 function getPlaylist(auth, playlistId) {
 
     let itemsCount = 0;
@@ -164,7 +174,7 @@ function getPlaylist(auth, playlistId) {
             console.log('The API returned an error: ' + err);
             return;
         }
-
+                
         let playlistInfo = response.data.items[0].snippet;
 
         service.playlistItems.list({
@@ -197,7 +207,7 @@ function getPlaylist(auth, playlistId) {
  * @param {google.auth.OAuth2} auth OAuth2.
  * @param {String} pageToken Next page reference.
  * @param {String} playlistId The playlist to iterate. 
- */
+  */
 function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlistInfo, data, itemsCount) {
     if (typeof (pageToken) != 'undefined') {
         service.playlistItems.list({
