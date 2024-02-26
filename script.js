@@ -177,7 +177,8 @@ function make_save_directory() {
 
         // Overwrite todays backup if there was one
         if (fs.existsSync(save_path)) {
-            fs.rmdir(save_path, err => {
+            // Remove the directory and its files
+            fs.rmSync(save_path, {recursive: true, force: true}, err => {
                 if (err) throw err;
             });
         }
