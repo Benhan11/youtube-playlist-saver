@@ -17,10 +17,11 @@ var save_path = './generated/playlists/'
 main()
 
 /**
- * Run the script
+ * Loads client secrets, fixes the output directory, and makes the first 
+ * authorization call, starting the process of communication with the 
+ * Google API.
  */
 function main() {
-    // Load client secrets from local file
     fs.readFile('client_secret.json', function processClientSecrets(err, content) {
         if (err) {
             console.log('Error loading client secret file: ' + err);
@@ -29,51 +30,49 @@ function main() {
 
         if (make_save_directory() == false) return;
 
-        let playlistIds = process.argv.slice(2);
-
-        // Check validity of the access token
-        authorize(JSON.parse(content), tokenIsValid, null);
-
-        // Get all playlist items from input playlistId's
-        playlistIds.forEach(pl => {
-            authorize(JSON.parse(content), getPlaylist, pl);
-        });
+        authorize(JSON.parse(content), null);
     });
 }
         
 
 /**
- * Create an OAuth2 client with the given credentials, and then execute the
- * given callback function.
+ * Create an OAuth2 client with the given credentials if it doesn't exist, 
+ * then validate the access token. Otherwise, validate the access token with
+ * the updated OAuth2 client.
  *
  * @param {Object} credentials The authorization client credentials.
- * @param {function} callback The callback to call with the authorized client.
+ * @param {google.auth.OAuth2} updatedOauth2Client An authorized OAuth2 client if not null.
  */
-function authorize(credentials, callback, cbArgs) {
-    var clientSecret = credentials.installed.client_secret;
-    var clientId = credentials.installed.client_id;
-    var redirectUrl = credentials.installed.redirect_uris[0];
-    var oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+function authorize(credentials, updatedOauth2Client) {
+    var oauth2Client = updatedOauth2Client;
+
+    // Make the OAuth2 client if it doesn't exist.
+    if (oauth2Client === null) {
+        var clientSecret = credentials.installed.client_secret;
+        var clientId = credentials.installed.client_id;
+        var redirectUrl = credentials.installed.redirect_uris[0];
+        oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+    }
 
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, function (err, token) {
         if (err) {
-            getNewToken(oauth2Client, callback);
+            getNewToken(oauth2Client);
         } else {
             oauth2Client.credentials = JSON.parse(token);
-            callback(oauth2Client, cbArgs);
+            validateToken(oauth2Client);
         }
     });
 }
 
 
 /**
- * Checks if the access token is valid.
+ * Checks if the access token is valid. If it is, begins the process of playlist
+ * saving, otherwise, begins the process of fetching a new token.
  * 
  * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
- * @returns True if the token is valid, otherwise False.
  */
-function tokenIsValid(oauth2Client, _cbArgs) {
+function validateToken(oauth2Client) {
     https.get('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + oauth2Client.credentials.access_token, res => {
         let data = [];
 
@@ -85,16 +84,16 @@ function tokenIsValid(oauth2Client, _cbArgs) {
             const contents = JSON.parse(Buffer.concat(data).toString());
             
             if (res.statusCode === 200) {
-                return true;
+                console.log("Token is valid.");
+                save_playlists(oauth2Client);
             }
-            
-            if (contents.error === 'invalid_token') {
-                console.log('Token not valid.');
-                return false;
+            else if (contents.error === 'invalid_token') {
+                console.log("Token is invalid, get a new one: ");
+                getNewToken(oauth2Client);
             }
             else {
                 console.log('Token error: ' + contents.error);
-                return false;
+                return;
             }
         });
 
@@ -106,17 +105,16 @@ function tokenIsValid(oauth2Client, _cbArgs) {
 
 /**
  * Get and store new token after prompting for user authorization, and then
- * execute the given callback with the authorized OAuth2 client.
+ * attempt to authorize with the OAuth2 client.
  *
  * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
- * @param {getEventsCallback} callback The callback to call with the authorized client.
  */
-function getNewToken(oauth2Client, callback) {
+function getNewToken(oauth2Client) {
     var authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES
     });
-    console.log('Authorize this app by visiting this url: ', authUrl);
+    console.log('\nAuthorize this app by visiting this url: ', authUrl);
 
     var rl = readline.createInterface({
         input: process.stdin,
@@ -132,7 +130,7 @@ function getNewToken(oauth2Client, callback) {
             }
             oauth2Client.credentials = token;
             storeToken(token);
-            callback(oauth2Client);
+            authorize(null, oauth2Client);
         });
     });
 }
@@ -160,7 +158,8 @@ function storeToken(token) {
 
 
 /**
- * Check if save directory exists and creates it if it does not, otherwise overwrites it.
+ * Check if save directory exists and creates it if it does not, otherwise,
+ * overwrites it.
  * 
  * @returns {boolean} false if a directory manipulation error occurred.
  */
@@ -189,6 +188,21 @@ function make_save_directory() {
         console.log(err);
         return false;
     }
+}
+
+
+/**
+ * Saves the playlists specified via the command line arguments.
+ * 
+ *  @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
+ */
+function save_playlists(oauth2Client) {
+    let playlistIds = process.argv.slice(2);
+
+    // Get all playlist items from input playlistId's
+    playlistIds.forEach(listId => {
+        getPlaylist(oauth2Client, listId);
+    });
 }
 
 
