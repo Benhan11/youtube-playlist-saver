@@ -1,5 +1,6 @@
 var fs = require('fs');
 var readline = require('readline');
+var https = require('https');
 var { google } = require('googleapis');
 var OAuth2 = google.auth.OAuth2;
 
@@ -30,6 +31,9 @@ function main() {
 
         let playlistIds = process.argv.slice(2);
 
+        // Check validity of the access token
+        authorize(JSON.parse(content), tokenIsValid, null);
+
         // Get all playlist items from input playlistId's
         playlistIds.forEach(pl => {
             authorize(JSON.parse(content), getPlaylist, pl);
@@ -59,6 +63,43 @@ function authorize(credentials, callback, cbArgs) {
             oauth2Client.credentials = JSON.parse(token);
             callback(oauth2Client, cbArgs);
         }
+    });
+}
+
+
+/**
+ * Checks if the access token is valid.
+ * 
+ * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
+ * @returns True if the token is valid, otherwise False.
+ */
+function tokenIsValid(oauth2Client, _cbArgs) {
+    https.get('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + oauth2Client.credentials.access_token, res => {
+        let data = [];
+
+        res.on('data', chunk => {
+            data.push(chunk);
+        });
+
+        res.on('end', () => {
+            const contents = JSON.parse(Buffer.concat(data).toString());
+            
+            if (res.statusCode === 200) {
+                return true;
+            }
+            
+            if (contents.error === 'invalid_token') {
+                console.log('Token not valid.');
+                return false;
+            }
+            else {
+                console.log('Token error: ' + contents.error);
+                return false;
+            }
+        });
+
+    }).on('error', err => {
+        console.log(err);
     });
 }
 
