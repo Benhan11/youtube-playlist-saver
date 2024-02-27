@@ -83,7 +83,7 @@ function validateToken(oauth2Client) {
         res.on('end', () => {
             const contents = JSON.parse(Buffer.concat(data).toString());
             
-            if (res.statusCode === 200) {
+            if (res.statusCode === 200 && contents.error !== 'invalid_token') {
                 console.log("Token is valid.");
                 save_playlists(oauth2Client);
             }
@@ -208,18 +208,13 @@ function save_playlists(oauth2Client) {
 
 
 /**
- * Lists names of items in specified user playlist.
+ * Get playlist information and initiate call for retrieval of
+ * the playlist's items.
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {String} playlistId The id of the selected playlist.
   */
 function getPlaylist(auth, playlistId) {
-
-    let itemsCount = 0;
-    let data = {
-        items: []
-    }
-
     var service = google.youtube('v3');
 
     service.playlists.list({
@@ -231,28 +226,43 @@ function getPlaylist(auth, playlistId) {
             console.log('The API returned an error: ' + err);
             return;
         }
-                
-        let playlistInfo = response.data.items[0].snippet;
 
-        service.playlistItems.list({
-            auth: auth,
-            part: 'snippet',
-            playlistId: playlistId,
-            maxResults: 50
-        }, (err, response) => {
-            if (err) {
-                console.log('The API returned an error: ' + err);
-                return;
-            }
+        getPlaylistItems(service, auth, response, playlistId);
+    });
+}
 
-            var playlistItems = response.data.items;
-            playlistItems.forEach(item => {
-                data.items.push(item.snippet.title);
-                itemsCount++;
-            });
 
-            recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
-        });
+/**
+ * Get a playlist's items and collect them as data. Recursively
+ * gather data from subsequent page requests.
+ * 
+ * @param {youtube_v3.Youtube} service The Youtube service.
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {Object} response The response containing general playlist information.
+ * @param {String} playlistId The id of the selected playlist. 
+ */
+function getPlaylistItems(service, auth, response, playlistId) {
+    let playlistInfo = response.data.items[0].snippet;
+
+    let itemsCount = 0;
+    let data = {
+        items: []
+    }
+
+    service.playlistItems.list({
+        auth: auth,
+        part: 'snippet',
+        playlistId: playlistId,
+        maxResults: 50
+    }, (err, response) => {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        }
+
+        [ data, itemsCount ] = pushNewData(data, itemsCount, response);
+
+        recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
     });
 }
 
@@ -270,6 +280,7 @@ function getPlaylist(auth, playlistId) {
  * @param {Number} itemsCount The number of items collected so far. 
  */
 function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlistInfo, data, itemsCount) {
+    // If it's not the last page
     if (typeof (pageToken) != 'undefined') {
         service.playlistItems.list({
             auth: auth,
@@ -283,19 +294,35 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
                 return;
             }
 
-            var playlistItems = response.data.items;
-            playlistItems.forEach(item => {
-                data.items.push(item.snippet.title);
-                itemsCount++;
-            });
+            [ data, itemsCount ] = pushNewData(data, itemsCount, response);
 
             recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
         });
     }
+    // If it is the last page
     else {
         fs.writeFileSync(save_path + '(' + playlistInfo.channelTitle + ') ' + playlistInfo.title + '.json', JSON.stringify(data));
         
         console.log('\nDone: (' + playlistInfo.channelTitle + ') ' + playlistInfo.title + ', ' + 'Items: ' + itemsCount + '\n' +
             playlistId + '\n');
     }
+}
+
+
+/**
+ * Utility function for handling the response data of a playlist
+ * items request, updating the data object and incrementing the
+ * number of counted items, returning both the updated values.
+ * 
+ * @param {Object} data The object for storing collected playlist data. 
+ * @param {Number} itemsCount The number of items collected so far. 
+ * @param {Object} response The response containing the playlist items. 
+ * @returns {Array} Updated data object and number of counted playlist items.
+ */
+function pushNewData(data, itemsCount, response) {
+    response.data.items.forEach(item => {
+        data.items.push(item.snippet.title);
+        itemsCount++;
+    });
+    return [data, itemsCount];
 }
