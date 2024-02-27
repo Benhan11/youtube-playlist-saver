@@ -28,7 +28,11 @@ function main() {
             return;
         }
 
-        if (make_save_directory() == false) return;
+        try { make_save_directory(); }
+        catch (err) {
+            console.log('Error manipulating output directory: ' + err);
+            return;
+        }
 
         authorize(JSON.parse(content), null);
     });
@@ -159,36 +163,27 @@ function storeToken(token) {
 
 /**
  * Check if save directory exists and creates it if it does not, otherwise,
- * overwrites it.
- * 
- * @returns {boolean} false if a directory manipulation error occurred.
+ * overwrites it. Throws an error in the case of a directory manipulation
+ * fault.
  */
 function make_save_directory() {
-    // Make the save directory if it does not already exist
-    try {
-        // Make sure the main directory exists
-        if (!fs.existsSync(save_path)) {
-            fs.mkdirSync(save_path, {recursive: true});
-        }
-
-        // Create the instance specific save path
-        const date = new Date();
-        save_path += date.toISOString().split('T')[0] + '/';
-
-        // Overwrite todays backup if there was one
-        if (fs.existsSync(save_path)) {
-            // Remove the directory and its files
-            fs.rmSync(save_path, {recursive: true, force: true}, err => {
-                if (err) throw err;
-            });
-        }
-        fs.mkdirSync(save_path);
-
+    // Make sure the main directory exists
+    if (!fs.existsSync(save_path)) {
+        fs.mkdirSync(save_path, {recursive: true});
     }
-    catch (err) {
-        console.log(err);
-        return false;
+
+    // Create the instance specific save path
+    const date = new Date();
+    save_path += date.toISOString().split('T')[0] + '/';
+
+    // Overwrite todays backup if there was one
+    if (fs.existsSync(save_path)) {
+        // Remove the directory and its files
+        fs.rmSync(save_path, {recursive: true, force: true}, err => {
+            if (err) throw err;
+        });
     }
+    fs.mkdirSync(save_path);
 }
 
 
