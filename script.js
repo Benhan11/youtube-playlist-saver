@@ -211,6 +211,7 @@ function save_playlists(oauth2Client) {
  * Lists names of items in specified user playlist.
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {String} playlistId The id of the selected playlist.
   */
 function getPlaylist(auth, playlistId) {
 
@@ -257,13 +258,17 @@ function getPlaylist(auth, playlistId) {
 
 
 /**
- * Recurse through consequent pages.
+ * Recurse through consequent pages gathering data. Write out 
+ * to file after the last page.
  * 
- * @param {*} service Youtube api.
+ * @param {youtube_v3.Youtube} service The Youtube service.
  * @param {google.auth.OAuth2} auth OAuth2.
  * @param {String} pageToken Next page reference.
  * @param {String} playlistId The playlist to iterate. 
-  */
+ * @param {Object} playlistInfo The relevant playlist information.
+ * @param {Object} data The object for storing collected playlist data. 
+ * @param {Number} itemsCount The number of items collected so far. 
+ */
 function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlistInfo, data, itemsCount) {
     if (typeof (pageToken) != 'undefined') {
         service.playlistItems.list({
@@ -289,6 +294,7 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
     }
     else {
         fs.writeFileSync(save_path + '(' + playlistInfo.channelTitle + ') ' + playlistInfo.title + '.json', JSON.stringify(data));
+        
         console.log('\nDone: (' + playlistInfo.channelTitle + ') ' + playlistInfo.title + ', ' + 'Items: ' + itemsCount + '\n' +
             playlistId + '\n');
     }
