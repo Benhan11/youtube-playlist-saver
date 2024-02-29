@@ -3,38 +3,71 @@ var readline = require('readline');
 var https = require('https');
 var { google } = require('googleapis');
 var OAuth2 = google.auth.OAuth2;
+var express = require('express');
 
-// If modifying these scopes, delete previously saved credentials
-// at ~/.credentials/project_token.json
+// Token and save path related
 var SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
 var TOKEN_DIR = './credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'project_token.json';
 var save_path = './generated/playlists/'
 
 
+// Initial setup
+var app = express();
+var port = 8080;
+var homepage_url = 'index';
+var service = google.youtube('v3');
 
-// Run the script
-main()
+
+
+
+
+/*---------------------------------------*/
+/*-               WEB APP               -*/
+/*---------------------------------------*/
+
+
+
+app.set('view engine', 'ejs');
+
+app.get('/', function(req, res) {
+    executeFunction(getAndRenderPlaylistTitles, res);
+});
+
+app.post('/', function(req, res) {
+    // TODO post
+});
+
+app.listen(port);
+console.log('Server started at http://127.0.0.1:' + port);
+
+
+
+
+
+
+
+/*---------------------------------------*/
+/*-              API CALLS              -*/
+/*---------------------------------------*/
+
+
 
 /**
- * Loads client secrets, fixes the output directory, and makes the first 
- * authorization call, starting the process of communication with the 
- * Google API.
+ * Loads client secrets and authorizes the execution of a function
+ * involving API-calls.
+ * 
+ * @param {Function} callback The function to be executed.
+ * @param {*} cbArgs Arguments for the callback. 
  */
-function main() {
+function executeFunction(callback, cbArgs) {
     fs.readFile('client_secret.json', function processClientSecrets(err, content) {
         if (err) {
             console.log('Error loading client secret file: ' + err);
             return;
         }
 
-        try { make_save_directory(); }
-        catch (err) {
-            console.log('Error manipulating output directory: ' + err);
-            return;
-        }
-
-        authorize(JSON.parse(content), null);
+        authorize(JSON.parse(content), null, callback, cbArgs);
     });
 }
         
@@ -42,12 +75,14 @@ function main() {
 /**
  * Create an OAuth2 client with the given credentials if it doesn't exist, 
  * then validate the access token. Otherwise, validate the access token with
- * the updated OAuth2 client.
+ * the updated OAuth2 client and send a callback.
  *
  * @param {Object} credentials The authorization client credentials.
  * @param {google.auth.OAuth2} updatedOauth2Client An authorized OAuth2 client if not null.
+ * @param {Function} callback The callback to be sent.
+ * @param {*} cbArgs Arguments for the callback. 
  */
-function authorize(credentials, updatedOauth2Client) {
+function authorize(credentials, updatedOauth2Client, callback, cbArgs) {
     var oauth2Client = updatedOauth2Client;
 
     // Make the OAuth2 client if it doesn't exist.
@@ -61,22 +96,24 @@ function authorize(credentials, updatedOauth2Client) {
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, function (err, token) {
         if (err) {
-            getNewToken(oauth2Client);
+            getNewToken(oauth2Client, callback, cbArgs);
         } else {
             oauth2Client.credentials = JSON.parse(token);
-            validateToken(oauth2Client);
+            validateTokenAndExecute(oauth2Client, callback, cbArgs);
         }
     });
 }
 
 
 /**
- * Checks if the access token is valid. If it is, begins the process of playlist
- * saving, otherwise, begins the process of fetching a new token.
+ * Checks if the access token is valid. If it is, begins the callback
+ * process, otherwise, begins the process of fetching a new token.
  * 
  * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
+ * @param {Function} callback The callback to be executed.
+ * @param {*} cbArgs Arguments for the callback. 
  */
-function validateToken(oauth2Client) {
+function validateTokenAndExecute(oauth2Client, callback, cbArgs) {
     https.get('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + oauth2Client.credentials.access_token, res => {
         let data = [];
 
@@ -89,11 +126,11 @@ function validateToken(oauth2Client) {
             
             if (res.statusCode === 200 && contents.error !== 'invalid_token') {
                 console.log("Token is valid.");
-                save_playlists(oauth2Client);
+                callback(oauth2Client, cbArgs);
             }
             else if (contents.error === 'invalid_token') {
-                console.log("Token is invalid, get a new one: ");
-                getNewToken(oauth2Client);
+                console.log("Token is invalid.");
+                getNewToken(oauth2Client, callback, cbArgs);
             }
             else {
                 console.log('Token error: ' + contents.error);
@@ -112,8 +149,10 @@ function validateToken(oauth2Client) {
  * attempt to authorize with the OAuth2 client.
  *
  * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
+ * @param {Function} callback The callback to be executed.
+ * @param {*} cbArgs Arguments for the callback. 
  */
-function getNewToken(oauth2Client) {
+function getNewToken(oauth2Client, callback, cbArgs) {
     var authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES
@@ -134,7 +173,7 @@ function getNewToken(oauth2Client) {
             }
             oauth2Client.credentials = token;
             storeToken(token);
-            authorize(null, oauth2Client);
+            authorize(null, oauth2Client, callback, cbArgs);
         });
     });
 }
@@ -156,7 +195,7 @@ function storeToken(token) {
     }
     fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
         if (err) throw err;
-        console.log('Token stored to ' + TOKEN_PATH);
+        console.log('\nToken stored to ' + TOKEN_PATH);
     });
 }
 
@@ -166,7 +205,7 @@ function storeToken(token) {
  * overwrites it. Throws an error in the case of a directory manipulation
  * fault.
  */
-function make_save_directory() {
+function makeSaveDirectory() {
     // Make sure the main directory exists
     if (!fs.existsSync(save_path)) {
         fs.mkdirSync(save_path, {recursive: true});
@@ -188,11 +227,117 @@ function make_save_directory() {
 
 
 /**
+ * Fetches and renders the users playlist titles.
+ * 
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {Object} renderObject The web-response object to be served for rendering.
+ */
+function getAndRenderPlaylistTitles(auth, renderObject) {
+    // Get the channel id of the user.
+    service.channels.list({
+        auth: auth,
+        part: 'id',
+        mine: true
+    }, function (err, response) {
+        if (err) {
+            console.log(err);
+        }
+
+        let channelId = response.data.items[0].id;
+
+        getPlaylistTitles(auth, renderObject, channelId);
+    });
+}
+
+
+/**
+ * Gathers all the playlist names for the specified channel, does so
+ * by recursively calling subsequent data pages, to be rendered.
+ * 
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {Object} renderObject The web-response object to be served for rendering.
+ * @param {String} channelId The id identifying the channel. 
+ */
+function getPlaylistTitles(auth, renderObject, channelId) {
+    let itemsCount = 0;
+    let data = {
+        items: []
+    }
+
+    // Get first page of playlists
+    service.playlists.list({
+        auth: auth,
+        part: 'snippet',
+        channelId: channelId
+    }, function (err, response) {
+        if (err) {
+            console.log(err);
+        }
+        
+        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
+
+        recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data, itemsCount);
+    });
+}
+
+
+/**
+ * Gather the playlist titles from subsequent pages and initiate rendering.
+ * 
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {Object} renderObject The web-response object to be served for rendering.
+ * @param {String} channelId The id identifying the channel. 
+ * @param {String} pageToken Next page reference.
+ * @param {Object} data The object for storing collected playlist data. 
+ * @param {Number} itemsCount The number of items collected so far. 
+ */
+function recursePlaylistPages(auth, renderObject, channelId, pageToken, data, itemsCount) {
+    if (typeof (pageToken) != 'undefined') {
+        service.playlists.list({
+            auth: auth,
+            part: 'snippet',
+            channelId: channelId,
+            pageToken: pageToken
+        }, function (err, response) {
+            if (err) {
+                console.log(err);
+            }
+            
+            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
+
+            recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data, itemsCount);
+        });
+    }
+    // When there are no more pages
+    else {
+        playlistsSorted = data.items.sort();
+        
+        renderPlaylistTitles(renderObject, playlistsSorted, itemsCount);
+    }
+}
+
+
+/**
+ * Serves a web-page response to the client with the playlist titles.
+ * 
+ * @param {Object} response The web-response object to be served for rendering.
+ * @param {Array} playlistTitles The playlist titles.
+ * @param {Number} itemsCount The number of titles collected. 
+ */
+function renderPlaylistTitles(response, playlistTitles, itemsCount) {
+    response.render(homepage_url, {
+        playlistTitles: playlistTitles,
+        itemsCount: itemsCount
+    });
+}
+
+
+/**
  * Saves the playlists specified via the command line arguments.
  * 
  *  @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
  */
-function save_playlists(oauth2Client) {
+function savePlaylists(oauth2Client) {
     let playlistIds = process.argv.slice(2);
 
     // Get all playlist items from input playlistId's
@@ -210,8 +355,6 @@ function save_playlists(oauth2Client) {
  * @param {String} playlistId The id of the selected playlist.
   */
 function getPlaylist(auth, playlistId) {
-    var service = google.youtube('v3');
-
     service.playlists.list({
         auth: auth,
         part: 'snippet',
@@ -255,7 +398,7 @@ function getPlaylistItems(service, auth, response, playlistId) {
             return;
         }
 
-        [ data, itemsCount ] = pushNewData(data, itemsCount, response);
+        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
 
         recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
     });
@@ -289,7 +432,7 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
                 return;
             }
 
-            [ data, itemsCount ] = pushNewData(data, itemsCount, response);
+            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
 
             recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
         });
@@ -305,17 +448,17 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
 
 
 /**
- * Utility function for handling the response data of a playlist
- * items request, updating the data object and incrementing the
- * number of counted items, returning both the updated values.
+ * Utility function for handling items from a request, updating 
+ * the data object and incrementing the number of counted items, 
+ * returning both the updated values.
  * 
- * @param {Object} data The object for storing collected playlist data. 
+ * @param {Object} data The object for storing collected data. 
  * @param {Number} itemsCount The number of items collected so far. 
- * @param {Object} response The response containing the playlist items. 
- * @returns {Array} Updated data object and number of counted playlist items.
+ * @param {Array} items The array containing the items. 
+ * @returns {Array} Updated data object and number of counted items.
  */
-function pushNewData(data, itemsCount, response) {
-    response.data.items.forEach(item => {
+function pushNewData(data, itemsCount, items) {
+    items.forEach(item => {
         data.items.push(item.snippet.title);
         itemsCount++;
     });
