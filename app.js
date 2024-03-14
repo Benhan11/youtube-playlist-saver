@@ -4,6 +4,7 @@ var https = require('https');
 var { google } = require('googleapis');
 var OAuth2 = google.auth.OAuth2;
 var express = require('express');
+var bodyParser = require('body-parser');
 
 // Token and save path related
 var SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
@@ -30,20 +31,21 @@ var service = google.youtube('v3');
 
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname));
+app.use(bodyParser.json());
+
 
 app.get('/', function(req, res) {
     makeSaveDirectory();
     executeFunction(getAndRenderPlaylistTitles, res);
 });
 
-app.post('/', function(req, res) {
-    // TODO post
+
+app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
+    console.log(req.body);
 });
 
 app.listen(port);
 console.log('Server started at http://127.0.0.1:' + port);
-
-
 
 
 
@@ -253,8 +255,9 @@ function getAndRenderPlaylistTitles(auth, renderObject) {
 
 
 /**
- * Gathers all the playlist names for the specified channel, does so
+ * Gathers all the playlists for the specified channel, does so
  * by recursively calling subsequent data pages, to be rendered.
+ * Does not include playlist items.
  * 
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {Object} renderObject The web-response object to be served for rendering.
@@ -284,7 +287,7 @@ function getPlaylistTitles(auth, renderObject, channelId) {
 
 
 /**
- * Gather the playlist titles from subsequent pages and initiate rendering.
+ * Gather the playlists from subsequent pages and initiate rendering.
  * 
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {Object} renderObject The web-response object to be served for rendering.
@@ -312,7 +315,7 @@ function recursePlaylistPages(auth, renderObject, channelId, pageToken, data, it
     }
     // When there are no more pages
     else {
-        playlistsSorted = data.items.sort();
+        playlistsSorted = data.items.sort(compareTitles);
         
         renderPlaylistTitles(renderObject, playlistsSorted, itemsCount);
     }
@@ -320,15 +323,32 @@ function recursePlaylistPages(auth, renderObject, channelId, pageToken, data, it
 
 
 /**
- * Serves a web-page response to the client with the playlist titles.
+ * Comparison function for determining title order amongst playlists.
+ * 
+ * @param {Object} p1 The first playlist.
+ * @param {Object} p2 The second playlist.
+ * @returns 1, -1, or 0 depending on the comparison.
+ */
+function compareTitles(p1, p2) {
+    const title1 = p1.title.toUpperCase();
+    const title2 = p2.title.toUpperCase();
+
+    if (title1 < title2) return -1;
+    if (title1 > title2) return 1;
+    return 0;
+}
+
+
+/**
+ * Serves a web-page response to the client with the playlists.
  * 
  * @param {Object} response The web-response object to be served for rendering.
- * @param {Array} playlistTitles The playlist titles.
+ * @param {Array} playlists The playlists.
  * @param {Number} itemsCount The number of titles collected. 
  */
-function renderPlaylistTitles(response, playlistTitles, itemsCount) {
+function renderPlaylistTitles(response, playlists, itemsCount) {
     response.render(homepage_url, {
-        playlistTitles: playlistTitles,
+        playlists: playlists,
         itemsCount: itemsCount
     });
 }
@@ -461,7 +481,10 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
  */
 function pushNewData(data, itemsCount, items) {
     items.forEach(item => {
-        data.items.push(item.snippet.title);
+        data.items.push({
+            title: item.snippet.title,
+            listId: item.id
+        });
         itemsCount++;
     });
     return [data, itemsCount];
