@@ -26,34 +26,34 @@
         <div class="row mb-5 pb-5">
             <div class="col-auto ms-3">
                 <form class="row" id="selectedPlaylistsForm" action="/" method="post">
-                    <div class="col-auto">
+                    <div class="col-auto" id="playlistsColumn1">
                         <% for (var i = 0; i < Math.ceil(playlists.length / 2); i++) { %>
-                            <div class="row mt-2 border rounded shadow-sm" id="container_<%= i %>">
+                            <div class="row mt-2 border rounded shadow-sm" id="container_<%= playlists[i].listId %>">
                                 <div class="col-auto me-3 playlist-title-column">
                                     <p class="m-2 playlist-title-text"><%= playlists[i].title.substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">
                                     <div class="btn-group me-0 float-end">
-                                        <button type="button" onclick="togglePlaylist('<%= i %>', true)" class="btn btn-success" id="button1_<%= i %>"><i class="bi bi-check"></i></button>
-                                        <button type="button" onclick="togglePlaylist('<%= i %>', false)" class="btn btn-outline-danger" id="button2_<%= i %>"><i class="bi bi-x"></i></button>
+                                        <button type="button" onclick="togglePlaylist('<%= playlists[i].listId %>', true)" class="btn btn-success" id="button1_<%= playlists[i].listId %>"><i class="bi bi-check"></i></button>
+                                        <button type="button" onclick="togglePlaylist('<%= playlists[i].listId %>', false)" class="btn btn-outline-danger" id="button2_<%= playlists[i].listId %>"><i class="bi bi-x"></i></button>
                                     </div>
-                                    <input id="input_<%= i %>" type="text" name="selectedPlaylists[]" value="true" hidden />
+                                    <input id="input_<%= playlists[i].listId %>" type="text" name="selectedPlaylists[]" value="true" hidden />
                                 </div>
                             </div>
                         <% } %>
                     </div>
-                    <div class="col-auto ms-4">
+                    <div class="col-auto ms-4" id="playlistsColumn2">
                         <% for (var i = Math.ceil(playlists.length / 2); i < playlists.length; i++) { %>
-                            <div class="row mt-2 border rounded shadow-sm" id="container_<%= i %>">
+                            <div class="row mt-2 border rounded shadow-sm" id="container_<%= playlists[i].listId %>">
                                 <div class="col-auto me-3 playlist-title-column">
                                     <p class="m-2 playlist-title-text"><%= playlists[i].title.substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">
                                     <div class="btn-group me-0 float-end">
-                                        <button type="button" onclick="togglePlaylist('<%= i %>', true)" class="btn btn-success" id="button1_<%= i %>"><i class="bi bi-check"></i></button>
-                                        <button type="button" onclick="togglePlaylist('<%= i %>', false)" class="btn btn-outline-danger" id="button2_<%= i %>"><i class="bi bi-x"></i></button>
+                                        <button type="button" onclick="togglePlaylist('<%= playlists[i].listId %>', true)" class="btn btn-success" id="button1_<%= playlists[i].listId %>"><i class="bi bi-check"></i></button>
+                                        <button type="button" onclick="togglePlaylist('<%= playlists[i].listId %>', false)" class="btn btn-outline-danger" id="button2_<%= playlists[i].listId %>"><i class="bi bi-x"></i></button>
                                     </div>
-                                    <input id="input_<%= i %>" type="text" name="selectedPlaylists[]" value="true" hidden />
+                                    <input id="input_<%= playlists[i].listId %>" type="text" name="selectedPlaylists[]" value="true" hidden />
                                 </div>
                             </div>
                         <% } %>
@@ -97,15 +97,22 @@
 <script>
 
 function toggleAllPlaylists(numberOfPlaylists, select) {
-    for (let i = 0; i < numberOfPlaylists; i++) {
-        doPlaylistToggle(
-            document.getElementById('container_' + i),
-            document.getElementById('button1_' + i),
-            document.getElementById('button2_' + i),
-            document.getElementById('input_' + i),
-            select
-        );
-    }
+    let playlistColumns = [
+        document.getElementById('playlistsColumn1'),
+        document.getElementById('playlistsColumn2')
+    ];
+
+    playlistColumns.forEach(column => {
+        for (let child of column.children) {
+            doPlaylistToggle(
+                document.getElementById('container_' + listId),
+                document.getElementById('button1_' + listId),
+                document.getElementById('button2_' + listId),
+                document.getElementById('input_' + listId),
+                select
+            );
+        }
+    });
 }
 
 function togglePlaylist(playlist_id, select) {
