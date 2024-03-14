@@ -23,18 +23,9 @@
             </div>
         </div>
         <div class="row m-5"></div>
-        <div class="row mb-5">
-            <div class="col-auto me-5">
-                <div class="row mt-2">
-                    <div class="col-auto p-4 border rounded">
-                        <!-- username, number of items, time, ... -->
-                        <p class="info-box-text">Username</p>
-                        <p class="info-box-text">Playlists gathered: <%= itemsCount %></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-auto ms-5">
-                <div class="row mt-3">
+        <div class="row mb-5 pb-5">
+            <div class="col-auto ms-3">
+                <div class="row">
                     <div class="col-auto">
                         <% for (var i = 0; i < Math.ceil(playlistTitles.length / 2); i++) { %>
                             <div class="row mt-2 border rounded shadow-sm" id="container_<%= i %>">
@@ -68,15 +59,25 @@
                 </div>
             </div>
         </div>
-        <div class="position-fixed bottom-0 end-0">
-            <div class="row ps-3 pe-3 pt-2 pb-2 border rounded shadow-sm fixed-button-box">
+    </div>
+    <div class="position-fixed bottom-0 border-top fixed-interaction-menu">
+        <div class="container">
+            <div class="row pt-2 pb-2">
                 <div class="col">
-                    <div class="row mb-2">
-                        <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', true)" class="btn btn-outline-success float-end">Select all</button>
-                    </div>
+                    <div class="info-box-text"><%= itemsCount %> playlists gathered</div>
+                </div>
+                <div class="col">
                     <div class="row">
-                        <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', false)" class="btn btn-outline-danger float-end">Clear selection</button>
+                        <div class="col-auto">
+                            <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', true)" class="btn btn-outline-success float-end menu-buttons">Select all</button>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', false)" class="btn btn-outline-danger float-end menu-buttons">Clear selection</button>
+                        </div>
                     </div>
+                </div>
+                <div class="col">
+                    <div class="info-box-text">Reload</div>
                 </div>
             </div>
         </div>
