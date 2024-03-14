@@ -22,16 +22,6 @@
                 <p class="display-2">Playlist saver</p>
             </div>
         </div>
-        <div class="position-fixed bottom-0 end-0 fixed-buttons">
-            <div class="row-1">
-                <div class="row mb-2">
-                    <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', true)" class="btn btn-outline-success float-end">Select all</button>
-                </div>
-                <div class="row">
-                    <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', false)" class="btn btn-outline-danger float-end">Clear selection</button>
-                </div>
-            </div>
-        </div>
         <div class="row m-5"></div>
         <div class="row mb-5">
             <div class="col-auto me-5">
@@ -74,6 +64,18 @@
                                 </div>
                             </div>
                         <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="position-fixed bottom-0 end-0">
+            <div class="row ps-3 pe-3 pt-2 pb-2 border rounded shadow-sm fixed-button-box">
+                <div class="col">
+                    <div class="row mb-2">
+                        <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', true)" class="btn btn-outline-success float-end">Select all</button>
+                    </div>
+                    <div class="row">
+                        <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', false)" class="btn btn-outline-danger float-end">Clear selection</button>
                     </div>
                 </div>
             </div>
