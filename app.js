@@ -21,6 +21,11 @@ var homepage_url = 'index';
 var service = google.youtube('v3');
 
 
+// Synchronization variable for multiple asynchronous API-calls
+var completedAPICalls; 
+var timeoutMilliseconds = 10000;
+
+
 
 
 
@@ -50,11 +55,14 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
     selectedPlaylists = selectedPlaylists.map(playlist => playlist.split('|')[0]);
     
     makeSaveDirectory();
-    executeFunction(savePlaylists, selectedPlaylists);
+    executeFunction(savePlaylistsAndRenderResults, {
+        res: res, 
+        playlistIds: selectedPlaylists
+    });
 });
 
 app.listen(port);
-console.log('Server started at http://127.0.0.1:' + port);
+console.log('Server started at http://127.0.0.1:' + port + '\n');
 
 
 
@@ -364,15 +372,23 @@ function renderPlaylistTitles(response, playlists, itemsCount) {
 
 
 /**
- * Saves the playlists specified via playlist id.
+ * Saves the playlists specified via playlist id and waits
+ * for all playlists to be fetched, then initiates rendering
+ * of the resulting page.
  * 
  * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
- * @param {Array} playlistIds Ids for the playlists to be saved.
+ * @param {Object} obj An object
+ * @param {Object} obj.renderObject The web-response object to be served for rendering.
+ * @param {Array} obj.playlistIds Ids for the playlists to be saved.
  */
-function savePlaylists(oauth2Client, playlistIds) {
+function savePlaylistsAndRenderResults(oauth2Client, {renderObject, playlistIds}) {
+    completedAPICalls = 0;
+
     playlistIds.forEach(listId => {
         getPlaylist(oauth2Client, listId);
     });
+
+    waitForPlaylistsToSaveAndRenderResponse(renderObject, playlistIds.length);
 }
 
 
@@ -469,10 +485,34 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
     // If it is the last page
     else {        
         fs.writeFileSync(save_path + '(' + playlistInfo.channelTitle + ') ' + playlistInfo.title + '.json', JSON.stringify(data));
-        
-        console.log('\nDone: (' + playlistInfo.channelTitle + ') ' + playlistInfo.title + ', ' + 'Items: ' + itemsCount + '\n' +
-            playlistId + '\n');
+        completedAPICalls++;
     }
+}
+
+
+/**
+ * TODO
+ * 
+ * @param {Object} response The object to render.
+ * @param {Number} numberOfPlaylists Nubmer of playlists.
+ */
+function waitForPlaylistsToSaveAndRenderResponse(response, numberOfPlaylists) {
+    timeout = setTimeout(() => {
+        console.log('Failed to render!');
+
+        clearInterval(checkStatus);
+    }, timeoutMilliseconds);
+
+    checkStatus = setInterval(() => {
+        console.log(completedAPICalls + ' completed out of ' + numberOfPlaylists);
+
+        if (completedAPICalls >= numberOfPlaylists) {
+            console.log('COMPLETED!');
+
+            clearTimeout(timeout);
+            clearInterval(checkStatus);
+        }
+    }, 200);
 }
 
 
