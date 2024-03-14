@@ -35,13 +35,21 @@ app.use(bodyParser.json());
 
 
 app.get('/', function(req, res) {
-    makeSaveDirectory();
     executeFunction(getAndRenderPlaylistTitles, res);
 });
 
 
 app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
-    console.log(req.body);
+    // Filter selected playlists
+    let selectedPlaylists = req.body.selectedPlaylists.filter((playlist) => {
+        return playlist.split('|')[1] === 'true';
+    });
+
+    // Take only the id
+    selectedPlaylists = selectedPlaylists.map(playlist => playlist.split('|')[0]);
+    
+    makeSaveDirectory();
+    executeFunction(savePlaylists, selectedPlaylists);
 });
 
 app.listen(port);
@@ -279,7 +287,7 @@ function getPlaylistTitles(auth, renderObject, channelId) {
             console.log(err);
         }
         
-        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
+        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, true);
 
         recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data, itemsCount);
     });
@@ -308,7 +316,7 @@ function recursePlaylistPages(auth, renderObject, channelId, pageToken, data, it
                 console.log(err);
             }
             
-            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
+            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, true);
 
             recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data, itemsCount);
         });
@@ -355,14 +363,12 @@ function renderPlaylistTitles(response, playlists, itemsCount) {
 
 
 /**
- * Saves the playlists specified via the command line arguments.
+ * Saves the playlists specified via playlist id.
  * 
- *  @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
+ * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
+ * @param {Array} playlistIds Ids for the playlists to be saved.
  */
-function savePlaylists(oauth2Client) {
-    let playlistIds = process.argv.slice(2);
-
-    // Get all playlist items from input playlistId's
+function savePlaylists(oauth2Client, playlistIds) {
     playlistIds.forEach(listId => {
         getPlaylist(oauth2Client, listId);
     });
@@ -420,7 +426,7 @@ function getPlaylistItems(service, auth, response, playlistId) {
             return;
         }
 
-        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
+        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, false);
 
         recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
     });
@@ -454,13 +460,13 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
                 return;
             }
 
-            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items);
+            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, false);
 
             recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
         });
     }
     // If it is the last page
-    else {
+    else {        
         fs.writeFileSync(save_path + '(' + playlistInfo.channelTitle + ') ' + playlistInfo.title + '.json', JSON.stringify(data));
         
         console.log('\nDone: (' + playlistInfo.channelTitle + ') ' + playlistInfo.title + ', ' + 'Items: ' + itemsCount + '\n' +
@@ -477,14 +483,19 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
  * @param {Object} data The object for storing collected data. 
  * @param {Number} itemsCount The number of items collected so far. 
  * @param {Array} items The array containing the items. 
+ * @param {Boolean} includeListId Decides whether or not to include id.
  * @returns {Array} Updated data object and number of counted items.
  */
-function pushNewData(data, itemsCount, items) {
+function pushNewData(data, itemsCount, items, includeListId) {
     items.forEach(item => {
-        data.items.push({
+        let newData;
+        if (!includeListId) newData = item.snippet.title;
+        else newData = {
             title: item.snippet.title,
             listId: item.id
-        });
+        }
+
+        data.items.push(newData);
         itemsCount++;
     });
     return [data, itemsCount];
