@@ -388,7 +388,7 @@ function savePlaylistsAndRenderResults(oauth2Client, {renderObject, playlistIds}
         getPlaylist(oauth2Client, listId);
     });
 
-    waitForPlaylistsToSaveAndRenderResponse(renderObject, playlistIds.length);
+    waitForPlaylistsToSaveThenRenderResponse(renderObject, playlistIds.length);
 }
 
 
@@ -491,12 +491,15 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
 
 
 /**
- * TODO
+ * Waits for playlists to be fetched and saved, checks
+ * the status of this process every 200 milliseconds and
+ * renders a page. If this process takes too long a 
+ * timeout will cause an error page to be rendered instead.
  * 
  * @param {Object} response The object to render.
  * @param {Number} numberOfPlaylists Nubmer of playlists.
  */
-function waitForPlaylistsToSaveAndRenderResponse(response, numberOfPlaylists) {
+function waitForPlaylistsToSaveThenRenderResponse(response, numberOfPlaylists) {
     timeout = setTimeout(() => {
         console.log('Failed to render!');
 
