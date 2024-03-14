@@ -25,8 +25,8 @@
         <div class="row m-5"></div>
         <div class="row mb-5">
             <div class="col-auto me-5">
-                <div class="row">
-                    <div class="col-auto mt-2 p-4 border rounded">
+                <div class="row mt-2">
+                    <div class="col-auto p-4 border rounded">
                         <!-- username, number of items, time, ... -->
                         <p class="info-box-text">Username</p>
                         <p class="info-box-text">Playlists gathered: <%= itemsCount %></p>
@@ -34,19 +34,25 @@
                 </div>
             </div>
             <div class="col-auto ms-5">
+                <div class="row mt-2">
+                    <div class="col-auto">
+                        <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', true)" class="btn btn-success">Select all</button>
+                    </div>
+                    <div class="col">
+                        <button type="button" onclick="toggleAllPlaylists('<%= itemsCount %>', false)" class="btn btn-danger">Clear selection</button>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-auto">
                         <% for (var i = 0; i < Math.ceil(playlistTitles.length / 2); i++) { %>
-                            <div class="row mt-2 border rounded shadow-sm">
-                            <div class="row mt-2 border rounded shadow-sm" id="playlist_<%= i %>">
+                            <div class="row mt-2 border rounded shadow-sm" id="container_<%= i %>">
                                 <div class="col-auto me-3 playlist-title-column">
                                     <p class="m-2 playlist-title-text"><%= playlistTitles[i].substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">
                                     <div class="btn-group me-0 float-end">
-                                        <button type="button" class="btn btn-success"><i class="bi bi-check"></i></button>
-                                        <button type="button" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
-                                        <button onclick="" type="button" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
+                                        <button type="button" onclick="togglePlaylist('<%= i %>', true)" class="btn btn-success" id="button1_<%= i %>"><i class="bi bi-check"></i></button>
+                                        <button type="button" onclick="togglePlaylist('<%= i %>', false)" class="btn btn-outline-danger" id="button2_<%= i %>"><i class="bi bi-x"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -54,15 +60,12 @@
                     </div>
                     <div class="col-auto ms-4">
                         <% for (var i = Math.ceil(playlistTitles.length / 2); i < playlistTitles.length; i++) { %>
-                            <div class="row mt-2 border rounded shadow-sm">
                             <div class="row mt-2 border rounded shadow-sm" id="container_<%= i %>">
                                 <div class="col-auto me-3 playlist-title-column">
                                     <p class="m-2 playlist-title-text"><%= playlistTitles[i].substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">
                                     <div class="btn-group me-0 float-end">
-                                        <button type="button" class="btn btn-success"><i class="bi bi-check"></i></button>
-                                        <button type="button" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
                                         <button type="button" onclick="togglePlaylist('<%= i %>', true)" class="btn btn-success" id="button1_<%= i %>"><i class="bi bi-check"></i></button>
                                         <button type="button" onclick="togglePlaylist('<%= i %>', false)" class="btn btn-outline-danger" id="button2_<%= i %>"><i class="bi bi-x"></i></button>
                                     </div>
@@ -76,28 +79,47 @@
     </div>
 </body>
 </html>
-</html>
 
 <script>
-function togglePlaylist(playlist_id, make_active) {
+
+function toggleAllPlaylists(numberOfPlaylists, select) {
+    for (let i = 0; i < numberOfPlaylists; i++) {
+        doPlaylistToggle(
+            document.getElementById('container_' + i),
+            document.getElementById('button1_' + i),
+            document.getElementById('button2_' + i),
+            select
+        );
+    }
+}
+
+function togglePlaylist(playlist_id, select) {
     let container = document.getElementById('container_' + playlist_id);
     let button1 = document.getElementById('button1_' + playlist_id);
     let button2 = document.getElementById('button2_' + playlist_id);
-    if (make_active) {
+
+    doPlaylistToggle(container, button1, button2, select);
+}
+
+function doPlaylistToggle(container, button1, button2, select) {
+    if (select) {
         button1.classList.remove('btn-outline-success');
         button1.classList.add('btn-success');
         
         button2.classList.remove('btn-danger');
         button2.classList.add('btn-outline-danger');
+
         container.style.opacity = '100%';
     }
     else {
         button1.classList.remove('btn-success');
         button1.classList.add('btn-outline-success');
+
         button2.classList.remove('btn-outline-danger');
         button2.classList.add('btn-danger');
+
         container.style.opacity = '50%';
     }
-    
 }
+
 </script>
