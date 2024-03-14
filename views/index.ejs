@@ -12,9 +12,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="row">
-            <div class="col 2">
-                <h1>Youtube playlist saver</h1>
         <div class="row mt-5">
             <div class="col-auto">
                 <a title="Original: YouTube Vector:  Jarould, Public domain, via Wikimedia Commons">
@@ -25,11 +22,6 @@
                 <p class="display-2">Playlist saver</p>
             </div>
         </div>
-        <div class="row">
-            <% playlistTitles.forEach(function(title) { %>
-                <p><%= title %></p>
-            <% }); %>
-            <p>Playlists gathered: <%= itemsCount %></p>
         <div class="row m-5"></div>
         <div class="row mb-5">
             <div class="col-auto me-5">
@@ -44,6 +36,7 @@
             <div class="col-auto ms-5">
                 <!-- Test -->
                 <!--<div class="row">
+                <div class="row">
                     <div class="col-auto">
                         <% for (var i = 0; i < Math.ceil(playlistTitles.length / 2); i++) { %>
                             <div class="row mt-2 border rounded shadow-sm">
@@ -61,9 +54,11 @@
                     </div>
                     <div class="col-auto ms-4">
                         <% for (var i = Math.ceil(playlistTitles.length / 2); i < playlistTitles.length - 1; i++) { %>
+                        <% for (var i = Math.ceil(playlistTitles.length / 2); i < playlistTitles.length; i++) { %>
                             <div class="row mt-2 border rounded shadow-sm">
                                 <div class="col-auto me-3 playlist-title-column">
                                     <p class="m-2 playlist-title-text"><%= playlistTitles[i] %></p>
+                                    <p class="m-2 playlist-title-text"><%= playlistTitles[i].substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">
                                     <div class="btn-group me-0 float-end">
@@ -89,6 +84,7 @@
                         </div>
                     </div>
                 <% }); %>
+                </div>
             </div>
         </div>
     </div>

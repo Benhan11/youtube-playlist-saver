@@ -32,6 +32,7 @@ app.set('view engine', 'ejs');
 app.use(express.static(__dirname));
 
 app.get('/', function(req, res) {
+    makeSaveDirectory();
     executeFunction(getAndRenderPlaylistTitles, res);
 });
 
