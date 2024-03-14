@@ -10,7 +10,8 @@ var bodyParser = require('body-parser');
 var SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
 var TOKEN_DIR = './credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'project_token.json';
-var save_path = './generated/playlists/'
+var OUTPUT_PATH = './generated/playlists/'
+var save_path;
 
 
 // Initial setup
@@ -219,13 +220,13 @@ function storeToken(token) {
  */
 function makeSaveDirectory() {
     // Make sure the main directory exists
-    if (!fs.existsSync(save_path)) {
-        fs.mkdirSync(save_path, {recursive: true});
+    if (!fs.existsSync(OUTPUT_PATH)) {
+        fs.mkdirSync(OUTPUT_PATH, {recursive: true});
     }
 
     // Create the instance specific save path
     const date = new Date();
-    save_path += date.toISOString().split('T')[0] + '/';
+    save_path = OUTPUT_PATH + date.toISOString().split('T')[0] + '/';
 
     // Overwrite todays backup if there was one
     if (fs.existsSync(save_path)) {
