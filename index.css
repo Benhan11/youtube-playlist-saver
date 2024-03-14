@@ -1,0 +1,13 @@
+
+.info-box-text {
+    font-size: 20px;
+}
+
+.playlist-title-column {
+    display: flex;
+    align-items: center;
+}
+
+.playlist-title-text {
+    font-size: 17px;
+}

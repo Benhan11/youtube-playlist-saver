@@ -29,6 +29,7 @@ var service = google.youtube('v3');
 
 
 app.set('view engine', 'ejs');
+app.use(express.static(__dirname));
 
 app.get('/', function(req, res) {
     executeFunction(getAndRenderPlaylistTitles, res);
