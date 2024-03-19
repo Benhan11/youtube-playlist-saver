@@ -1,0 +1,45 @@
+
+.info-box-text {
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+.fixed-interaction-menu {
+    background-color: white;
+    width: 100%;
+}
+
+.menu-buttons {
+    width: 130px;
+}
+
+.playlists-saved-icon {
+    margin-top: -10px;
+}
+
+.playlists-saved-text {
+    font-size: 22px;
+}
+
+.playlist-title-column {
+    display: flex;
+    align-items: center;
+}
+
+.playlist-title-text {
+    font-size: 17px;
+}
+
+.playlist-items-icon-column {
+    display: flex;
+    align-items: center;
+}
+
+.playlist-items-icon {
+    margin-top: -2px;
+}
+
+.vertical-center-content {
+    display: flex;
+    align-items: center;
+}

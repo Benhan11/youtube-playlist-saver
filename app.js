@@ -18,12 +18,15 @@ var save_path;
 var app = express();
 var port = 8080;
 var homepage_url = 'index';
+var success_url = 'success';
+var error_url = 'error';
 var service = google.youtube('v3');
 
 
 // Synchronization variable for multiple asynchronous API-calls
 var completedAPICalls; 
 var timeoutMilliseconds = 10000;
+var fetchedPlaylists = [];
 
 
 
@@ -56,7 +59,7 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
     
     makeSaveDirectory();
     executeFunction(savePlaylistsAndRenderResults, {
-        res: res, 
+        renderObject: res, 
         playlistIds: selectedPlaylists
     });
 });
@@ -451,8 +454,8 @@ function getPlaylistItems(service, auth, response, playlistId) {
 
 
 /**
- * Recurse through consequent pages gathering data. Write out 
- * to file after the last page.
+ * Recurse through consequent pages gathering data. When finished
+ * fetching the last page, pass along the data to be processed.
  * 
  * @param {youtube_v3.Youtube} service The Youtube service.
  * @param {google.auth.OAuth2} auth OAuth2.
@@ -484,9 +487,26 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
     }
     // If it is the last page
     else {        
-        fs.writeFileSync(save_path + '(' + playlistInfo.channelTitle + ') ' + playlistInfo.title + '.json', JSON.stringify(data));
-        completedAPICalls++;
+        finishPlaylistFetch(playlistInfo, data);
     }
+}
+
+
+/**
+ * Code to be executed after the complete fetch of a playlist,
+ * such as, writing the data to a file, and passing along data
+ * to be rendered in a response.
+ * 
+ * @param {Object} playlistInfo The playlist information.
+ * @param {Array} playlistContent The contens of the playlist.
+ */
+function finishPlaylistFetch(playlistInfo, playlistContent) {
+    fs.writeFileSync(save_path + '(' + playlistInfo.channelTitle + ') ' + playlistInfo.title + '.json', JSON.stringify(playlistContent));
+    fetchedPlaylists = [
+        ...fetchedPlaylists, 
+        { title: playlistInfo.title, itemsCount: playlistContent.items.length }
+    ];
+    completedAPICalls++;
 }
 
 
@@ -497,25 +517,25 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
  * timeout will cause an error page to be rendered instead.
  * 
  * @param {Object} response The object to render.
- * @param {Number} numberOfPlaylists Nubmer of playlists.
+ * @param {Number} expectedPlaylists Expected nubmer of playlists.
  */
-function waitForPlaylistsToSaveThenRenderResponse(response, numberOfPlaylists) {
+function waitForPlaylistsToSaveThenRenderResponse(response, expectedPlaylists) {
     timeout = setTimeout(() => {
-        console.log('Failed to render!');
-
         clearInterval(checkStatus);
+        response.render(error_url);
+
     }, timeoutMilliseconds);
 
     checkStatus = setInterval(() => {
-        console.log(completedAPICalls + ' completed out of ' + numberOfPlaylists);
+        console.log(completedAPICalls + ' completed out of ' + expectedPlaylists);
 
-        if (completedAPICalls >= numberOfPlaylists) {
-            console.log('COMPLETED!');
-
+        if (completedAPICalls >= expectedPlaylists) {
             clearTimeout(timeout);
             clearInterval(checkStatus);
+            
+            response.render(success_url, {'playlists': fetchedPlaylists});
         }
-    }, 200);
+    }, 500);
 }
 
 
@@ -530,8 +550,8 @@ function waitForPlaylistsToSaveThenRenderResponse(response, numberOfPlaylists) {
  * @param {Boolean} includeListId Decides whether or not to include id.
  * @returns {Array} Updated data object and number of counted items.
  */
-function pushNewData(data, itemsCount, items, includeListId) {
-    items.forEach(item => {
+function pushNewData(data, itemsCount, newItems, includeListId) {
+    newItems.forEach(item => {
         let newData;
         if (!includeListId) newData = item.snippet.title;
         else newData = {
