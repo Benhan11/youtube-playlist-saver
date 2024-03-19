@@ -43,7 +43,7 @@ app.use(express.static(__dirname));
 app.use(bodyParser.json());
 
 
-app.get('/', function(req, res) {
+app.get('/', function(req, res) {    
     executeFunction(getAndRenderPlaylistTitles, res);
 });
 
@@ -486,7 +486,7 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
         });
     }
     // If it is the last page
-    else {        
+    else {
         finishPlaylistFetch(playlistInfo, data);
     }
 }

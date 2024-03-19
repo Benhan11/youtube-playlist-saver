@@ -1,3 +1,7 @@
+.title, .title:hover {
+    color: inherit;
+    text-decoration: none;
+}
 
 .info-box-text {
     font-size: 18px;
