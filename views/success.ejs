@@ -37,7 +37,7 @@
                     <div class="col-auto">
                         <% for (var i = 0; i < Math.ceil(playlists.length / 2); i++) { %>
                             <div class="row mt-2 border rounded shadow-sm">
-                                <div class="col-auto me-1 playlist-title-column">
+                                <div class="col-auto me-1 vertical-center-content">
                                     <p class="m-2 playlist-title-text">
                                         <% if (playlists[i].title.length > 25) { %>
                                             <%= playlists[i].title.substring(0, 21) + ' ...' %>
@@ -53,7 +53,7 @@
                                                 <p class="m-2 ms-3 me-0 playlist-title-text"><%- playlists[i].itemsCount %></p>
                                             </div>
                                         </div>
-                                        <div class="col-auto ps-0 playlist-items-icon-column">
+                                        <div class="col-auto ps-0 vertical-center-content">
                                             <i class="bi bi-list-ul playlist-items-icon"></i>
                                         </div>
                                     </div>
@@ -64,7 +64,7 @@
                     <div class="col-auto ms-4">
                         <% for (var i = Math.ceil(playlists.length / 2); i < playlists.length; i++) { %>
                             <div class="row mt-2 border rounded shadow-sm">
-                                <div class="col-auto me-1 playlist-title-column">
+                                <div class="col-auto me-1 vertical-center-content">
                                     <p class="m-2 playlist-title-text">
                                         <% if (playlists[i].title.length > 25) { %>
                                             <%= playlists[i].title.substring(0, 21) + ' ...' %>
@@ -80,7 +80,7 @@
                                                 <p class="m-2 ms-3 me-0 playlist-title-text"><%- playlists[i].itemsCount %></p>
                                             </div>
                                         </div>
-                                        <div class="col-auto ps-0 playlist-items-icon-column">
+                                        <div class="col-auto ps-0 vertical-center-content">
                                             <i class="bi bi-list-ul playlist-items-icon"></i>
                                         </div>
                                     </div>

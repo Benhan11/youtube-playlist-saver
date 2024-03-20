@@ -29,7 +29,7 @@
                     <div class="col-auto" id="playlistsColumn1">
                         <% for (var i = 0; i < Math.ceil(playlists.length / 2); i++) { %>
                             <div class="row mt-2 border rounded shadow-sm" id="container_<%= playlists[i].listId %>">
-                                <div class="col-auto me-3 playlist-title-column">
+                                <div class="col-auto me-3 vertical-center-content">
                                     <p class="m-2 playlist-title-text"><%= playlists[i].title.substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">
@@ -45,7 +45,7 @@
                     <div class="col-auto ms-4" id="playlistsColumn2">
                         <% for (var i = Math.ceil(playlists.length / 2); i < playlists.length; i++) { %>
                             <div class="row mt-2 border rounded shadow-sm" id="container_<%= playlists[i].listId %>">
-                                <div class="col-auto me-3 playlist-title-column">
+                                <div class="col-auto me-3 vertical-center-content">
                                     <p class="m-2 playlist-title-text"><%= playlists[i].title.substring(0, 35) %></p>
                                 </div>
                                 <div class="col p-1">

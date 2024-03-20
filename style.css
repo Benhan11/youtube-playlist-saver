@@ -26,18 +26,8 @@
     font-size: 22px;
 }
 
-.playlist-title-column {
-    display: flex;
-    align-items: center;
-}
-
 .playlist-title-text {
     font-size: 17px;
-}
-
-.playlist-items-icon-column {
-    display: flex;
-    align-items: center;
 }
 
 .playlist-items-icon {
