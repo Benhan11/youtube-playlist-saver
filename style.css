@@ -18,15 +18,15 @@
     width: 130px;
 }
 
-.playlists-save-status-icon {
+.subheader-icon {
     margin-top: -10px;
 }
 
-.playlists-save-status-text {
+.subheader-text {
     font-size: 22px;
 }
 
-.playlists-output-text {
+.subheader-subtext {
     font-size: 12px;
 }
 
@@ -34,7 +34,7 @@
     font-size: 17px;
 }
 
-.playlist-items-icon {
+.small-icon {
     margin-top: -2px;
 }
 

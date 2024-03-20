@@ -23,12 +23,26 @@
             </div>
         </div>
         <div class="row m-5"></div>
-        <div class="row mt-5 mb-4 ms-2">
+        <div class="row mt-5 mb-5 ms-2">
             <div class="col-auto pe-1 vertical-center-content">
                 <i class="bi bi-x text-danger h1 subheader-icon"></i>
             </div>
             <div class="col ps-0 pt-2">
-                <p class="subheader-text">Timed out whilst attempting to save playlists, try again.</p>
+                <div class="row"><p class="col mb-0 subheader-text">Invalid Token</p></div>
+                <div class="row"><p class="col subheader-subtext">To request a new token, press the button and follow the steps.</p></div>
+            </div>
+        </div>
+        <div class="row mt-5 mb-3">
+            <div class="col-auto">
+                <a class="btn btn-primary vertical-center-content" href="<%= authUrl %>" target="_blank">Authenticate<i class="bi bi-box-arrow-up-right ms-2 small-icon"></i></a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-auto">
+                <form class="input-group" action="/authorize" method="post">
+                    <input type="text" class="form-control" name="authCode" placeholder="Authentication code">
+                    <button class="btn btn-secondary vertical-center-content" type="submit">Submit<i class="bi bi-key-fill ms-2 small-icon"></i></button>
+                </form>
             </div>
         </div>
     </div>

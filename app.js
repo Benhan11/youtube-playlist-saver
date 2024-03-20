@@ -21,6 +21,7 @@ var app = express();
 var host_url = 'http://localhost';
 var port = 8080;
 var homepage_url = 'index';
+var authorize_url = 'authorize';
 var success_url = 'success';
 var error_url = 'error';
 var service = google.youtube('v3');
@@ -66,6 +67,13 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
         playlistIds: selectedPlaylists
     });
 });
+
+
+app.post('/authorize', bodyParser.urlencoded({ extended: true }), function(req, res) {
+    let authCode = req.body.authCode;
+    console.log(authCode);
+});
+
 
 app.listen(port);
 console.log('Server started at ' + host_url + ':' + port);
@@ -125,7 +133,7 @@ function authorize(credentials, updatedOauth2Client, callback, cbArgs) {
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, function (err, token) {
         if (err) {
-            getNewToken(oauth2Client, callback, cbArgs);
+            promptAndRenderAuthorization(oauth2Client, cbArgs);
         } else {
             oauth2Client.credentials = JSON.parse(token);
             validateTokenAndExecute(oauth2Client, callback, cbArgs);
@@ -158,7 +166,7 @@ function validateTokenAndExecute(oauth2Client, callback, cbArgs) {
             }
             else if (contents.error === 'invalid_token') {
                 console.log("Token is invalid.");
-                getNewToken(oauth2Client, callback, cbArgs);
+                promptAndRenderAuthorization(oauth2Client, cbArgs);
             }
             else {
                 console.log('Token error: ' + contents.error);
@@ -203,6 +211,25 @@ function getNewToken(oauth2Client, callback, cbArgs) {
             storeToken(token);
             authorize(null, oauth2Client, callback, cbArgs);
         });
+    });
+}
+
+
+/**
+ * Get and store new token by rendering the authorization page prompting for 
+ * user authorization.
+ *
+ * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
+ * @param {Object} renderObject The web-response object to be served for rendering.
+ */
+function promptAndRenderAuthorization(oauth2Client, renderObject) {
+    var authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: SCOPES
+    });
+    
+    renderObject.render(authorize_url, {
+        authUrl: authUrl
     });
 }
 
