@@ -546,7 +546,7 @@ function waitForPlaylistsToSaveThenRenderResponse(response, expectedPlaylists) {
  * 
  * @param {Object} data The object for storing collected data. 
  * @param {Number} itemsCount The number of items collected so far. 
- * @param {Array} items The array containing the items. 
+ * @param {Array} newItems The array containing the items. 
  * @param {Boolean} includeListId Decides whether or not to include id.
  * @returns {Array} Updated data object and number of counted items.
  */
