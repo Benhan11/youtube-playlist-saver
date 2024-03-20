@@ -70,17 +70,14 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
 app.listen(port);
 console.log('Server started at ' + host_url + ':' + port);
 
-// Go to the page
-exec(('start ' + host_url + ':' + port), (err, stdout, stderr) => {
-    if (err)    console.log('Failed to open browser:' + err + '\n');
-    else        console.log('Opened browser at ' + host_url + ':' + port + '\n');
-});
+openBrowser();
+
 
 
 
 
 /*---------------------------------------*/
-/*-              API CALLS              -*/
+/*-        API CALLS AND UTILITY        -*/
 /*---------------------------------------*/
 
 
@@ -255,6 +252,26 @@ function makeSaveDirectory() {
         });
     }
     fs.mkdirSync(save_path);
+}
+
+
+/**
+ * Opens a browser to the served home page.
+ */
+function openBrowser() {
+    exec(('start ' + host_url + ':' + port), (err, stdout, stderr) => {
+        if (err)    console.log('Failed to open browser:' + err + '\n');
+        else        console.log('Opened browser at ' + host_url + ':' + port + '\n');
+    });
+}
+
+
+/**
+ * Opens a filer explorer window to the output folder.
+ */
+function openFileExplorer() {
+    let formattedPath = save_path.replace('/', '\\');
+    exec('start "" "' + formattedPath + '"');
 }
 
 
@@ -540,6 +557,8 @@ function waitForPlaylistsToSaveThenRenderResponse(response, expectedPlaylists) {
                 'playlists': fetchedPlaylists,
                 'savePath': save_path
             });
+
+            openFileExplorer();
         }
     }, 500);
 }
