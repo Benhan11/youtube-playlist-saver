@@ -535,7 +535,10 @@ function waitForPlaylistsToSaveThenRenderResponse(response, expectedPlaylists) {
             clearTimeout(timeout);
             clearInterval(checkStatus);
             
-            response.render(success_url, {'playlists': fetchedPlaylists});
+            response.render(success_url, {
+                'playlists': fetchedPlaylists,
+                'savePath': save_path
+            });
         }
     }, 500);
 }

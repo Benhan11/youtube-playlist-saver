@@ -24,11 +24,12 @@
         </div>
         <div class="row m-5"></div>
         <div class="row mt-5 mb-4 ms-2">
-            <div class="col-auto pe-1 vertical-center-content">
+            <div class="col-auto pe-3 vertical-center-content">
                 <i class="bi bi-check text-success h1 playlists-save-status-icon"></i>
             </div>
             <div class="col ps-0 pt-2">
-                <p class="playlists-save-status-text"><%= playlists.length %> playlists saved.</p>
+                <div class="row"><p class="col mb-0 playlists-save-status-text"><%= playlists.length %> playlists saved.</p></div>
+                <div class="row"><p class="col playlists-output-text">Output: <%= savePath %></p></div>
             </div>
         </div>
         <div class="row mb-5 pb-5">
