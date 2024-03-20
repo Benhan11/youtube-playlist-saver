@@ -59,7 +59,7 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
 
     // Take only the id
     selectedPlaylists = selectedPlaylists.map(playlist => playlist.split('|')[0]);
-    
+
     makeSaveDirectory();
     executeFunction(savePlaylistsAndRenderResults, {
         renderObject: res, 
@@ -390,6 +390,7 @@ function renderPlaylistTitles(response, playlists) {
  */
 function savePlaylistsAndRenderResults(oauth2Client, {renderObject, playlistIds}) {
     completedAPICalls = 0;
+    fetchedPlaylists = [];
 
     playlistIds.forEach(listId => {
         getPlaylist(oauth2Client, listId);
