@@ -284,7 +284,6 @@ function getAndRenderPlaylistTitles(auth, renderObject) {
  * @param {String} channelId The id identifying the channel. 
  */
 function getPlaylistTitles(auth, renderObject, channelId) {
-    let itemsCount = 0;
     let data = {
         items: []
     }
@@ -299,9 +298,9 @@ function getPlaylistTitles(auth, renderObject, channelId) {
             console.log(err);
         }
         
-        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, true);
+        data = pushNewData(data, response.data.items, true);
 
-        recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data, itemsCount);
+        recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data);
     });
 }
 
@@ -314,9 +313,8 @@ function getPlaylistTitles(auth, renderObject, channelId) {
  * @param {String} channelId The id identifying the channel. 
  * @param {String} pageToken Next page reference.
  * @param {Object} data The object for storing collected playlist data. 
- * @param {Number} itemsCount The number of items collected so far. 
  */
-function recursePlaylistPages(auth, renderObject, channelId, pageToken, data, itemsCount) {
+function recursePlaylistPages(auth, renderObject, channelId, pageToken, data) {
     if (typeof (pageToken) != 'undefined') {
         service.playlists.list({
             auth: auth,
@@ -328,16 +326,16 @@ function recursePlaylistPages(auth, renderObject, channelId, pageToken, data, it
                 console.log(err);
             }
             
-            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, true);
+            data = pushNewData(data, response.data.items, true);
 
-            recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data, itemsCount);
+            recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data);
         });
     }
     // When there are no more pages
     else {
         playlistsSorted = data.items.sort(compareTitles);
         
-        renderPlaylistTitles(renderObject, playlistsSorted, itemsCount);
+        renderPlaylistTitles(renderObject, playlistsSorted);
     }
 }
 
@@ -364,12 +362,10 @@ function compareTitles(p1, p2) {
  * 
  * @param {Object} response The web-response object to be served for rendering.
  * @param {Array} playlists The playlists.
- * @param {Number} itemsCount The number of titles collected. 
  */
-function renderPlaylistTitles(response, playlists, itemsCount) {
+function renderPlaylistTitles(response, playlists) {
     response.render(homepage_url, {
-        playlists: playlists,
-        itemsCount: itemsCount
+        playlists: playlists
     });
 }
 
@@ -430,7 +426,6 @@ function getPlaylist(auth, playlistId) {
 function getPlaylistItems(service, auth, response, playlistId) {
     let playlistInfo = response.data.items[0].snippet;
 
-    let itemsCount = 0;
     let data = {
         items: []
     }
@@ -446,9 +441,9 @@ function getPlaylistItems(service, auth, response, playlistId) {
             return;
         }
 
-        [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, false);
+        data = pushNewData(data, response.data.items, false);
 
-        recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
+        recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data);
     });
 }
 
@@ -463,9 +458,8 @@ function getPlaylistItems(service, auth, response, playlistId) {
  * @param {String} playlistId The playlist to iterate. 
  * @param {Object} playlistInfo The relevant playlist information.
  * @param {Object} data The object for storing collected playlist data. 
- * @param {Number} itemsCount The number of items collected so far. 
  */
-function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlistInfo, data, itemsCount) {
+function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlistInfo, data) {
     // If it's not the last page
     if (typeof (pageToken) != 'undefined') {
         service.playlistItems.list({
@@ -480,9 +474,9 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
                 return;
             }
 
-            [ data, itemsCount ] = pushNewData(data, itemsCount, response.data.items, false);
+            data = pushNewData(data, response.data.items, false);
 
-            recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data, itemsCount);
+            recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data);
         });
     }
     // If it is the last page
@@ -541,16 +535,14 @@ function waitForPlaylistsToSaveThenRenderResponse(response, expectedPlaylists) {
 
 /**
  * Utility function for handling items from a request, updating 
- * the data object and incrementing the number of counted items, 
- * returning both the updated values.
+ * the data object and returning it.
  * 
  * @param {Object} data The object for storing collected data. 
- * @param {Number} itemsCount The number of items collected so far. 
  * @param {Array} newItems The array containing the items. 
  * @param {Boolean} includeListId Decides whether or not to include id.
- * @returns {Array} Updated data object and number of counted items.
+ * @returns {Array} Updated data array.
  */
-function pushNewData(data, itemsCount, newItems, includeListId) {
+function pushNewData(data, newItems, includeListId) {
     newItems.forEach(item => {
         let newData;
         if (!includeListId) newData = item.snippet.title;
@@ -560,7 +552,6 @@ function pushNewData(data, itemsCount, newItems, includeListId) {
         }
 
         data.items.push(newData);
-        itemsCount++;
     });
-    return [data, itemsCount];
+    return data;
 }
