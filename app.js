@@ -154,7 +154,6 @@ function validateTokenAndExecute(oauth2Client, callback, cbArgs) {
             const contents = JSON.parse(Buffer.concat(data).toString());
             
             if (res.statusCode === 200 && contents.error !== 'invalid_token') {
-                console.log("Token is valid.");
                 callback(oauth2Client, cbArgs);
             }
             else if (contents.error === 'invalid_token') {
@@ -558,6 +557,7 @@ function waitForPlaylistsToSaveThenRenderResponse(response, expectedPlaylists) {
                 'savePath': save_path
             });
 
+            console.log();
             openFileExplorer();
         }
     }, 500);
