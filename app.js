@@ -5,6 +5,8 @@ var { google } = require('googleapis');
 var OAuth2 = google.auth.OAuth2;
 var express = require('express');
 var bodyParser = require('body-parser');
+const { exec } = require('child_process');
+
 
 // Token and save path related
 var SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
@@ -16,6 +18,7 @@ var save_path;
 
 // Initial setup
 var app = express();
+var host_url = 'http://localhost';
 var port = 8080;
 var homepage_url = 'index';
 var success_url = 'success';
@@ -65,8 +68,13 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
 });
 
 app.listen(port);
-console.log('Server started at http://127.0.0.1:' + port + '\n');
+console.log('Server started at ' + host_url + ':' + port);
 
+// Go to the page
+exec(('start ' + host_url + ':' + port), (err, stdout, stderr) => {
+    if (err)    console.log('Failed to open browser:' + err + '\n');
+    else        console.log('Opened browser at ' + host_url + ':' + port + '\n');
+});
 
 
 
