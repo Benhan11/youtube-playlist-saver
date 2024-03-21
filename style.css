@@ -1,0 +1,44 @@
+.title, .title:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.info-box-text {
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+.fixed-interaction-menu {
+    z-index: 1000;
+    background-color: white;
+    width: 100%;
+}
+
+.menu-buttons {
+    width: 130px;
+}
+
+.subheader-icon {
+    margin-top: -10px;
+}
+
+.subheader-text {
+    font-size: 22px;
+}
+
+.subheader-subtext {
+    font-size: 12px;
+}
+
+.playlist-title-text {
+    font-size: 17px;
+}
+
+.small-icon {
+    margin-top: -2px;
+}
+
+.vertical-center-content {
+    display: flex;
+    align-items: center;
+}
