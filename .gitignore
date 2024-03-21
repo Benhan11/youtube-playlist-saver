@@ -4,3 +4,4 @@ generated/
 project_token.json
 client_secret.json
 notes.md
+*.bat
