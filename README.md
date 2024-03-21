@@ -1,7 +1,13 @@
 # Youtube Playlist Saver
 
-### Run
-node app.js
+This personal web application fetches and saves the user's Youtube playlists for backup purposes.
 
-### Output
-*./generated/playlists/YYYY-mm-dd/\<listID\>.json*
+This app was built using a [Node.js](https://nodejs.org/en) + [Express](https://expressjs.com/) + [EJS](https://ejs.co/) stack, utilizing the Google API.
+
+
+### Run
+```
+node app.js
+```
+
+(requires a Google developer account)
