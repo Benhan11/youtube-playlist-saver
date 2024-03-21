@@ -1,5 +1,4 @@
 var fs = require('fs');
-var readline = require('readline');
 var https = require('https');
 var { google } = require('googleapis');
 var OAuth2 = google.auth.OAuth2;
