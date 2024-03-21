@@ -25,6 +25,7 @@ var authorize_url = 'authorize';
 var success_url = 'success';
 var error_url = 'error';
 var service = google.youtube('v3');
+var oauth2Client = null;
 
 
 // Synchronization variable for multiple asynchronous API-calls
@@ -71,7 +72,8 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
 
 app.post('/authorize', bodyParser.urlencoded({ extended: true }), function(req, res) {
     let authCode = req.body.authCode;
-    console.log(authCode);
+    
+    executeFunction(null, {res, authCode});
 });
 
 
@@ -104,7 +106,7 @@ function executeFunction(callback, cbArgs) {
             return;
         }
 
-        authorize(JSON.parse(content), null, callback, cbArgs);
+        authorize(JSON.parse(content), callback, cbArgs);
     });
 }
         
@@ -112,16 +114,13 @@ function executeFunction(callback, cbArgs) {
 /**
  * Create an OAuth2 client with the given credentials if it doesn't exist, 
  * then validate the access token. Otherwise, validate the access token with
- * the updated OAuth2 client and send a callback.
+ * the updated OAuth2 client and pass along a callback.
  *
  * @param {Object} credentials The authorization client credentials.
- * @param {google.auth.OAuth2} updatedOauth2Client An authorized OAuth2 client if not null.
  * @param {Function} callback The callback to be sent.
  * @param {*} cbArgs Arguments for the callback. 
  */
-function authorize(credentials, updatedOauth2Client, callback, cbArgs) {
-    var oauth2Client = updatedOauth2Client;
-
+function authorize(credentials, callback, cbArgs) {
     // Make the OAuth2 client if it doesn't exist.
     if (oauth2Client === null) {
         var clientSecret = credentials.installed.client_secret;
@@ -133,10 +132,10 @@ function authorize(credentials, updatedOauth2Client, callback, cbArgs) {
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, function (err, token) {
         if (err) {
-            promptAndRenderAuthorization(oauth2Client, cbArgs);
+            handleAuthorization(callback, cbArgs);
         } else {
             oauth2Client.credentials = JSON.parse(token);
-            validateTokenAndExecute(oauth2Client, callback, cbArgs);
+            validateTokenAndExecute(callback, cbArgs);
         }
     });
 }
@@ -146,11 +145,10 @@ function authorize(credentials, updatedOauth2Client, callback, cbArgs) {
  * Checks if the access token is valid. If it is, begins the callback
  * process, otherwise, begins the process of fetching a new token.
  * 
- * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
  * @param {Function} callback The callback to be executed.
  * @param {*} cbArgs Arguments for the callback. 
  */
-function validateTokenAndExecute(oauth2Client, callback, cbArgs) {
+function validateTokenAndExecute(callback, cbArgs) {
     https.get('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + oauth2Client.credentials.access_token, res => {
         let data = [];
 
@@ -162,11 +160,11 @@ function validateTokenAndExecute(oauth2Client, callback, cbArgs) {
             const contents = JSON.parse(Buffer.concat(data).toString());
             
             if (res.statusCode === 200 && contents.error !== 'invalid_token') {
-                callback(oauth2Client, cbArgs);
+                callback(cbArgs);
             }
             else if (contents.error === 'invalid_token') {
                 console.log("Token is invalid.");
-                promptAndRenderAuthorization(oauth2Client, cbArgs);
+                handleAuthorization(callback, cbArgs);
             }
             else {
                 console.log('Token error: ' + contents.error);
@@ -181,48 +179,28 @@ function validateTokenAndExecute(oauth2Client, callback, cbArgs) {
 
 
 /**
- * Get and store new token after prompting for user authorization, and then
- * attempt to authorize with the OAuth2 client.
- *
- * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
- * @param {Function} callback The callback to be executed.
- * @param {*} cbArgs Arguments for the callback. 
+ * Interprets the current state of authorization and decides whether
+ * authorization needs to be started or if it is ready to be completed.
+ * Originally, the callback would have been sent to be executed, if it
+ * has ended up in the authorization flow it means there is currently
+ * no token. If the callback is null, authorization should be finished
+ * as that is the indication.
+ * 
+ * @param {Function} callback Callback indicating state of authorization.
+ * @param {*} args Arguments to be sent to the authorization functions.
  */
-function getNewToken(oauth2Client, callback, cbArgs) {
-    var authUrl = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: SCOPES
-    });
-    console.log('\nAuthorize this app by visiting this url: ', authUrl);
-
-    var rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
-    rl.question('Enter the code from that page here: ', function (code) {
-        rl.close();
-        oauth2Client.getToken(code, function (err, token) {
-            if (err) {
-                console.log('Error while trying to retrieve access token', err);
-                return;
-            }
-            oauth2Client.credentials = token;
-            storeToken(token);
-            authorize(null, oauth2Client, callback, cbArgs);
-        });
-    });
+function handleAuthorization(callback, args) {
+    if (callback !== null)  startAuthorization(args);
+    else                    finishAuthorization(args);
 }
 
 
 /**
- * Get and store new token by rendering the authorization page prompting for 
- * user authorization.
+ * Get the authorization url and render the authorization page.
  *
- * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
  * @param {Object} renderObject The web-response object to be served for rendering.
  */
-function promptAndRenderAuthorization(oauth2Client, renderObject) {
+function startAuthorization(renderObject) {
     var authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES
@@ -230,6 +208,29 @@ function promptAndRenderAuthorization(oauth2Client, renderObject) {
     
     renderObject.render(authorize_url, {
         authUrl: authUrl
+    });
+}
+
+
+/**
+ * Using an authorization code, gets and stores the access token using
+ * the OAuth2 client. Lastly, attempts to redirect to the home page.
+ * 
+ * @param {Object} obj An object
+ * @param {Object} obj.res The response object to redirect with.
+ * @param {String} obj.authCode The authorization code. 
+ */
+function finishAuthorization({res, authCode}) {
+    oauth2Client.getToken(authCode, function(err, token) {
+        if (err) {
+            console.log('Error while trying to retrieve access token.', err);
+        }
+        else {
+            oauth2Client.credentials = token;
+            storeToken(token);
+        }
+
+        res.redirect('/');
     });
 }
 
@@ -304,13 +305,12 @@ function openFileExplorer() {
 /**
  * Fetches and renders the users playlist titles.
  * 
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {Object} renderObject The web-response object to be served for rendering.
  */
-function getAndRenderPlaylistTitles(auth, renderObject) {
+function getAndRenderPlaylistTitles(renderObject) {
     // Get the channel id of the user.
     service.channels.list({
-        auth: auth,
+        auth: oauth2Client,
         part: 'id',
         mine: true
     }, function (err, response) {
@@ -320,7 +320,7 @@ function getAndRenderPlaylistTitles(auth, renderObject) {
 
         let channelId = response.data.items[0].id;
 
-        getPlaylistTitles(auth, renderObject, channelId);
+        getPlaylistTitles(renderObject, channelId);
     });
 }
 
@@ -330,18 +330,17 @@ function getAndRenderPlaylistTitles(auth, renderObject) {
  * by recursively calling subsequent data pages, to be rendered.
  * Does not include playlist items.
  * 
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {Object} renderObject The web-response object to be served for rendering.
  * @param {String} channelId The id identifying the channel. 
  */
-function getPlaylistTitles(auth, renderObject, channelId) {
+function getPlaylistTitles(renderObject, channelId) {
     let data = {
         items: []
     }
 
     // Get first page of playlists
     service.playlists.list({
-        auth: auth,
+        auth: oauth2Client,
         part: 'snippet',
         channelId: channelId
     }, function (err, response) {
@@ -351,7 +350,7 @@ function getPlaylistTitles(auth, renderObject, channelId) {
         
         data = pushNewData(data, response.data.items, true);
 
-        recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data);
+        recursePlaylistPages(renderObject, channelId, response.data.nextPageToken, data);
     });
 }
 
@@ -359,16 +358,15 @@ function getPlaylistTitles(auth, renderObject, channelId) {
 /**
  * Gather the playlists from subsequent pages and initiate rendering.
  * 
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {Object} renderObject The web-response object to be served for rendering.
  * @param {String} channelId The id identifying the channel. 
  * @param {String} pageToken Next page reference.
  * @param {Object} data The object for storing collected playlist data. 
  */
-function recursePlaylistPages(auth, renderObject, channelId, pageToken, data) {
+function recursePlaylistPages(renderObject, channelId, pageToken, data) {
     if (typeof (pageToken) != 'undefined') {
         service.playlists.list({
-            auth: auth,
+            auth: oauth2Client,
             part: 'snippet',
             channelId: channelId,
             pageToken: pageToken
@@ -379,7 +377,7 @@ function recursePlaylistPages(auth, renderObject, channelId, pageToken, data) {
             
             data = pushNewData(data, response.data.items, true);
 
-            recursePlaylistPages(auth, renderObject, channelId, response.data.nextPageToken, data);
+            recursePlaylistPages(renderObject, channelId, response.data.nextPageToken, data);
         });
     }
     // When there are no more pages
@@ -426,17 +424,16 @@ function renderPlaylistTitles(response, playlists) {
  * for all playlists to be fetched, then initiates rendering
  * of the resulting page.
  * 
- * @param {google.auth.OAuth2} oauth2Client An authorized OAuth2 client.
  * @param {Object} obj An object
  * @param {Object} obj.renderObject The web-response object to be served for rendering.
  * @param {Array} obj.playlistIds Ids for the playlists to be saved.
  */
-function savePlaylistsAndRenderResults(oauth2Client, {renderObject, playlistIds}) {
+function savePlaylistsAndRenderResults({renderObject, playlistIds}) {
     completedAPICalls = 0;
     fetchedPlaylists = [];
 
     playlistIds.forEach(listId => {
-        getPlaylist(oauth2Client, listId);
+        getPlaylist(listId);
     });
 
     waitForPlaylistsToSaveThenRenderResponse(renderObject, playlistIds.length);
@@ -447,12 +444,11 @@ function savePlaylistsAndRenderResults(oauth2Client, {renderObject, playlistIds}
  * Get playlist information and initiate call for retrieval of
  * the playlist's items.
  *
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {String} playlistId The id of the selected playlist.
   */
-function getPlaylist(auth, playlistId) {
+function getPlaylist(playlistId) {
     service.playlists.list({
-        auth: auth,
+        auth: oauth2Client,
         part: 'snippet',
         id: playlistId
     }, function (err, response) {
@@ -461,7 +457,7 @@ function getPlaylist(auth, playlistId) {
             return;
         }
 
-        getPlaylistItems(service, auth, response, playlistId);
+        getPlaylistItems(service, response, playlistId);
     });
 }
 
@@ -471,11 +467,10 @@ function getPlaylist(auth, playlistId) {
  * gather data from subsequent page requests.
  * 
  * @param {youtube_v3.Youtube} service The Youtube service.
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * @param {Object} response The response containing general playlist information.
  * @param {String} playlistId The id of the selected playlist. 
  */
-function getPlaylistItems(service, auth, response, playlistId) {
+function getPlaylistItems(service, response, playlistId) {
     let playlistInfo = response.data.items[0].snippet;
 
     let data = {
@@ -483,7 +478,7 @@ function getPlaylistItems(service, auth, response, playlistId) {
     }
 
     service.playlistItems.list({
-        auth: auth,
+        auth: oauth2Client,
         part: 'snippet',
         playlistId: playlistId,
         maxResults: 50
@@ -495,7 +490,7 @@ function getPlaylistItems(service, auth, response, playlistId) {
 
         data = pushNewData(data, response.data.items, false);
 
-        recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data);
+        recursePlaylistItemPages(service, response.data.nextPageToken, playlistId, playlistInfo, data);
     });
 }
 
@@ -505,17 +500,16 @@ function getPlaylistItems(service, auth, response, playlistId) {
  * fetching the last page, pass along the data to be processed.
  * 
  * @param {youtube_v3.Youtube} service The Youtube service.
- * @param {google.auth.OAuth2} auth OAuth2.
  * @param {String} pageToken Next page reference.
  * @param {String} playlistId The playlist to iterate. 
  * @param {Object} playlistInfo The relevant playlist information.
  * @param {Object} data The object for storing collected playlist data. 
  */
-function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlistInfo, data) {
+function recursePlaylistItemPages(service, pageToken, playlistId, playlistInfo, data) {
     // If it's not the last page
     if (typeof (pageToken) != 'undefined') {
         service.playlistItems.list({
-            auth: auth,
+            auth: oauth2Client,
             part: 'snippet',
             playlistId: playlistId,
             maxResults: 50,
@@ -528,7 +522,7 @@ function recursePlaylistItemPages(service, auth, pageToken, playlistId, playlist
 
             data = pushNewData(data, response.data.items, false);
 
-            recursePlaylistItemPages(service, auth, response.data.nextPageToken, playlistId, playlistInfo, data);
+            recursePlaylistItemPages(service, response.data.nextPageToken, playlistId, playlistInfo, data);
         });
     }
     // If it is the last page
