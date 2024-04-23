@@ -47,10 +47,13 @@ app.use(express.static(__dirname));
 app.use(bodyParser.json());
 
 
+/**
+ * Request routing
+ */
+
 app.get('/', function(req, res) {    
     executeFunction(getAndRenderPlaylistTitles, res);
 });
-
 
 app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
     // Filter selected playlists
@@ -68,13 +71,16 @@ app.post('/', bodyParser.urlencoded({ extended: true }), function(req, res) {
     });
 });
 
-
 app.post('/authorize', bodyParser.urlencoded({ extended: true }), function(req, res) {
     let authCode = req.body.authCode;
     
     executeFunction(null, {res, authCode});
 });
 
+
+/**
+ * Start app
+ */
 
 app.listen(port);
 console.log('Server started at ' + host_url + ':' + port);
