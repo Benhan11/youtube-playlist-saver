@@ -20,16 +20,31 @@ git clone https://github.com/Benhan11/youtube-playlist-saver.git
 
 2. **Add project token to `credentials/project_token.json`**
 
-3. **Install dependencies**
+3. **(Docker) Build Docker image**
+```
+docker build -t youtube-playlist saver .
+```
+
+3. **(Without Docker) Install packages**
 ```
 npm install
 ```
 
 
 ## Usage
+**(Docker) Run Docker container** 
+```
+docker run --name youtube-playlist-saver -p 8080:8080 youtube-playlist-saver
+```
+
+**(Without Docker) Run Node**
 ```
 node app.js
 ```
+
+The application can now be accessed at http://localhost:8080
+
+*Docker Note* Generated backups can be found at `/app/generated/playlists/` within the container.
 
 
 ## Dependencies
